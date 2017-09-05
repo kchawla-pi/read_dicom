@@ -30,24 +30,43 @@ def get_cli_args():
 # pprint(hdr.__dir__())
 
 def select_fields():
-    return {'EchoTime': 'EchoTime',
-            'EffectiveEchoSpacing': 'PixelBandwidth',
-            'FlipAngle': 'FlipAngle',
-            'MultibandAccelerationFactor': 'Unknown DICOM Field',
-            'NumberOfSlices': '[0x0019, 0x100b].value',
-            'ParallelReductionFactorInPlane': 'Unknown DICOM Field',
-            'PhaseEncodeDirection': 'Unknown DICOM Field',
-            'ProtocolName': 'ProtocolName',
-            'RepetitionTime': 'RepetitionTime',
-            'SequenceName': 'SequenceName',
-            'TaskName': 'taskname'
-            }
+    field_titles ={'EchoTime':'EchoTime',
+                    'EffectiveEchoSpacing':'PixelBandwidth',
+                    'FlipAngle':'FlipAngle',
+                    'MultibandAccelerationFactor':'Unknown DICOM Field',
+                    'NumberOfSlices':'[0x0019, 0x100b].value',
+                    'ParallelReductionFactorInPlane':'Unknown DICOM Field',
+                    'PhaseEncodeDirection':'Unknown DICOM Field',
+                    'ProtocolName':'ProtocolName',
+                    'RepetitionTime':'RepetitionTime',
+                    'SequenceName':'SequenceName',
+                    'TaskName':'taskname'
+                    }
+    return {alias: '.'.join(['header', field_]) for alias, field_ in field_titles.items()}
 
 
+def fields_dict(fields_dict, header):
+    missing_fields = dict()
+    final_fields_dict = dict()
+    for alias, field_ in fields_dict.items():
+        try:
+            final_fields_dict.update({alias: eval(field_)})
+        except AttributeError:
+            missing_fields.update({fields_dict[alias]: field_})
+        except SyntaxError:
+            missing_fields.update({fields_dict[alias]:field_})
+    print('The following fields do not exist in the dicom file header:')
+    return final_fields_dict, missing_fields
 
+
+    
+    
+    
+    
 
 in_args = get_cli_args()
 hdr = pydicom.read_file(in_args.dicom_filename)
-print(hdr.__dict__)
-
+fields_str = select_fields()
+fields_dict, missing_fields = fields_dict(fields_str, hdr)
+# print(hdr.__dict__)
 # pprint(select_fields())
