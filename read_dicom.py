@@ -21,7 +21,6 @@ for module_ in module_names:
 	module_path = os.path.join(root_path, module_, 'src')
 	os.sys.path.insert(1, module_path)
 
-print(os.sys.path)
 import slice_timing
 
 print(slice_timing.slice_times)
@@ -85,24 +84,33 @@ def dicom_info(dicom_path, taskname, bids_type):
 	fields_info = fields_dict(fields_str, hdr)
 	fields_info = add_slice_timings(fields_info=fields_info)
 	fields_info['TaskName'] = taskname
+	output_as_str(fields_info)
+	return fields_info
+	
+def output_as_str(fields_info):
+	
+	return
+	
+
+def main(dicom_path=None, taskname=None, bids_type=None):
+	if dicom_path:
+		dicom_path, taskname, bids_type = dicom_path, taskname, bids_type
+	else:
+		in_args = get_cli_args()
+		dicom_path, taskname, bids_type = in_args.dicom_filename, in_args.taskname, in_args.bids_type
+		
+	fields_info = dicom_info(dicom_path=dicom_path,
+	                         taskname=taskname,
+	                         bids_type=bids_type,
+	                         )
 	return fields_info
 	
 
-
-def main():
-	in_args = get_cli_args()
-	fields_info = dicom_info(dicom_path=in_args.dicom_filename,
-	                         taskname=in_args.taskname,
-	                         bids_type=in_args.bids_type
-	                         )
-	return fields_info
-	# hdr = pydicom.read_file(in_args.dicom_filename)
-	# fields_str = select_fields()
-	# fields_info = fields_dict(fields_str, hdr)
-	# fields_info = add_slice_timings(fields_info=fields_info)
-
 if __name__ == '__main__':
-	fields_info = main()
+	dicom_path = os.path.realpath('C:\\Users\\kshit\\Dropbox\\workspace\\tic\\read_dicom\\dicom_files\\mocap_bold.dcm')
+	taskname = 'test'
+	bids_type = 'func'
+	fields_info = main(dicom_path, taskname, bids_type)
 	pprint((fields_info))
 
 """
