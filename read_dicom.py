@@ -18,10 +18,11 @@ root_path = os.path.realpath(os.path.join(curr_file_path, '..'))
 module_names = ['slice_timing']
 os.sys.path.insert(1, root_path)
 for module_ in module_names:
-	module_path = os.path.join(root_path, module_)
-	os.path.sys.insert(1, module_path)
+	module_path = os.path.join(root_path, module_, 'src')
+	os.sys.path.insert(1, module_path)
 
 print(os.sys.path)
+import slice_timing
 
 print(slice_timing.slice_times)
 
@@ -51,7 +52,7 @@ def select_fields():
 	              'ParallelReductionFactorInPlane': '{}.ParallelReductionFactorInPlane',
 	              'PhaseEncodeDirection': '{}.PhaseEncodeDirection',
 	              'ProtocolName': '{}.ProtocolName',
-	              'RepetitionTime': '{}.RepetitionTime',
+	              'RepetitionTime': '{}.RepetitionTime /1000',
 	              'SequenceName': '{}.SequenceName',
 	              'TaskName': '{}.taskname'
 	              })
@@ -63,18 +64,27 @@ def fields_dict(fields_dict, header):
 		try:
 			final_fields_dict.update({alias: eval(field_.format('header'))})
 		except (AttributeError, SyntaxError):
-			final_fields_dict.update({alias: (field_, AttributeError)})
+			final_fields_dict.update({alias: (field_.format('header'), AttributeError)})
 	return final_fields_dict
 
-
+def add_slice_timings(fields_info):
+	slice_timings, slice_scan_order = slice_timing.slice_times(
+				rep_time= fields_info['RepetitionTime'],
+				num_slices=fields_info['NumberOfSlices']
+				)
+	fields_info.update(odict({'SliceTimings': slice_timings,
+	                   'SliceScanOrder': slice_scan_order,
+	                    }))
+	return fields_info
+	
 in_args = get_cli_args()
 hdr = pydicom.read_file(in_args.dicom_filename)
 fields_str = select_fields()
 fields_dict = fields_dict(fields_str, hdr)
-pprint(dict(fields_dict))
-# print(hdr['0008, 2112'])
-print(fields_dict['ProtocolName'], fields_dict['NumberOfSlices'])
-print(slice_timing.slice_times())#.slice_times())
+fields_dict = add_slice_timings(fields_info=fields_dict)
+
+pprint((fields_dict))
+
 """
 (0019, 1018) Private tag data                    OB: b'3500'
  (0008, 2112): <Sequence, length 35, at 284C5DA79A8>,
