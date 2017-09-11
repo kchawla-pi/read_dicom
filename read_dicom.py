@@ -88,8 +88,8 @@ def dicom_info(dicom_path, taskname, bids_type):
 	return fields_info
 	
 def output_as_str(fields_info):
-	
-	return
+	info_str = '\n'.join(['{}: {}'.format(alias, data) for alias, data in fields_info.items()])
+	return info_str
 	
 
 def main(dicom_path=None, taskname=None, bids_type=None):
@@ -111,7 +111,7 @@ if __name__ == '__main__':
 	taskname = 'test'
 	bids_type = 'func'
 	fields_info = main(dicom_path, taskname, bids_type)
-	pprint((fields_info))
+	print(output_as_str(fields_info))
 
 """
 (0019, 1018) Private tag data                    OB: b'3500'
