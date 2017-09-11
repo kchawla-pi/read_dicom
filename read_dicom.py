@@ -67,6 +67,7 @@ def fields_dict(fields_dict, header):
 			final_fields_dict.update({alias: (field_.format('header'), AttributeError)})
 	return final_fields_dict
 
+
 def add_slice_timings(fields_info):
 	slice_timings, slice_scan_order = slice_timing.slice_times(
 				rep_time= fields_info['RepetitionTime'],
@@ -76,14 +77,33 @@ def add_slice_timings(fields_info):
 	                   'SliceScanOrder': slice_scan_order,
 	                    }))
 	return fields_info
-	
-in_args = get_cli_args()
-hdr = pydicom.read_file(in_args.dicom_filename)
-fields_str = select_fields()
-fields_dict = fields_dict(fields_str, hdr)
-fields_dict = add_slice_timings(fields_info=fields_dict)
 
-pprint((fields_dict))
+
+def dicom_info(dicom_path, taskname, bids_type):
+	hdr = pydicom.read_file(dicom_path)
+	fields_str = select_fields()
+	fields_info = fields_dict(fields_str, hdr)
+	fields_info = add_slice_timings(fields_info=fields_info)
+	fields_info['TaskName'] = taskname
+	return fields_info
+	
+
+
+def main():
+	in_args = get_cli_args()
+	fields_info = dicom_info(dicom_path=in_args.dicom_filename,
+	                         taskname=in_args.taskname,
+	                         bids_type=in_args.bids_type
+	                         )
+	return fields_info
+	# hdr = pydicom.read_file(in_args.dicom_filename)
+	# fields_str = select_fields()
+	# fields_info = fields_dict(fields_str, hdr)
+	# fields_info = add_slice_timings(fields_info=fields_info)
+
+if __name__ == '__main__':
+	fields_info = main()
+	pprint((fields_info))
 
 """
 (0019, 1018) Private tag data                    OB: b'3500'
