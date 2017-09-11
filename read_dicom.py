@@ -1,72 +1,70 @@
 try:
-    import pydicom
+	import pydicom
 except ImportError:
-    import dicom as pydicom  # maintain compatibility with dicom v1.0, known as pydicom
+	import dicom as pydicom# maintain compatibility with dicom v1.0, known as pydicom
 
 import argparse
+import json
 
+from collections import OrderedDict as odict
 from pprint import pprint
 
-import helpers
 
-
-# helpers.get_filelist()
 def get_cli_args():
-    arg_parser=argparse.ArgumentParser(description='Reads dicom header',prog='read_dicom_header.py',
-                                       usage='%(prog)s --help for list of commands.')
-    
-    arg_parser.add_argument('dicom_filename',metavar='DicomFile',help='Dicom filename',type=str)
-    arg_parser.add_argument('--bids_type',metavar='BIDS JSON Type',
-                            help='Type of BIDS JSON file to create %(choices)s',type=str,
-                            choices=['anat','fmap','func'])
-    
-    arg_parser.add_argument('--taskname',metavar='TaskName',
-                            help='%(metavar)s when BIDS JSON type is \'func\'',type=str)
-    
-    in_args=arg_parser.parse_args()
-    return in_args
+	arg_parser = argparse.ArgumentParser(description='Reads dicom header',
+										 prog='read_dicom_header.py',
+										 usage='%(prog)s --help for list of commands.')
+	
+	arg_parser.add_argument('dicom_filename', metavar='DicomFile', help='Dicom filename', type=str)
+	arg_parser.add_argument('--bids_type', metavar='BIDS JSON Type',
+							help='Type of BIDS JSON file to create %(choices)s', type=str,
+							choices=['anat', 'fmap', 'func'])
+	
+	arg_parser.add_argument('--taskname', metavar='TaskName',
+							help='%(metavar)s when BIDS JSON type is \'func\'', type=str)
+	
+	in_args = arg_parser.parse_args()
+	return in_args
 
-
-# pprint(hdr.__dir__())
 
 def select_fields():
-    field_titles ={'EchoTime':'EchoTime',
-                    'EffectiveEchoSpacing':'PixelBandwidth',
-                    'FlipAngle':'FlipAngle',
-                    'MultibandAccelerationFactor':'Unknown DICOM Field',
-                    'NumberOfSlices':'[0x0019, 0x100b].value',
-                    'ParallelReductionFactorInPlane':'Unknown DICOM Field',
-                    'PhaseEncodeDirection':'Unknown DICOM Field',
-                    'ProtocolName':'ProtocolName',
-                    'RepetitionTime':'RepetitionTime',
-                    'SequenceName':'SequenceName',
-                    'TaskName':'taskname'
-                    }
-    return {alias: '.'.join(['header', field_]) for alias, field_ in field_titles.items()}
+	return odict({'EchoTime': '{}.EchoTime',
+	              'EffectiveEchoSpacing': '{}.PixelBandwidth ** (-1)',
+	              'FlipAngle': '{}.FlipAngle',
+	              'MultibandAccelerationFactor': '{}.MultibandAccelerationFactor',
+	              'NumberOfSlices': 'len({}.SourceImageSequence)',
+	              'ParallelReductionFactorInPlane': '{}.ParallelReductionFactorInPlane',
+	              'PhaseEncodeDirection': '{}.PhaseEncodeDirection',
+	              'ProtocolName': '{}.ProtocolName',
+	              'RepetitionTime': '{}.RepetitionTime',
+	              'SequenceName': '{}.SequenceName',
+	              'TaskName': '{}.taskname'
+	              })
 
 
 def fields_dict(fields_dict, header):
-    missing_fields = dict()
-    final_fields_dict = dict()
-    for alias, field_ in fields_dict.items():
-        try:
-            final_fields_dict.update({alias: eval(field_)})
-        except AttributeError:
-            missing_fields.update({fields_dict[alias]: field_})
-        except SyntaxError:
-            missing_fields.update({fields_dict[alias]:field_})
-    print('The following fields do not exist in the dicom file header:')
-    return final_fields_dict, missing_fields
+	final_fields_dict = odict()
+	for alias, field_ in fields_dict.items():
+		try:
+			final_fields_dict.update({alias: eval(field_.format('header'))})
+		except (AttributeError, SyntaxError):
+			final_fields_dict.update({alias: (field_, AttributeError)})
+	return final_fields_dict
 
-
-    
-    
-    
-    
 
 in_args = get_cli_args()
 hdr = pydicom.read_file(in_args.dicom_filename)
 fields_str = select_fields()
-fields_dict, missing_fields = fields_dict(fields_str, hdr)
-# print(hdr.__dict__)
-# pprint(select_fields())
+fields_dict = fields_dict(fields_str, hdr)
+pprint(dict(fields_dict))
+# print(hdr['0008, 2112'])
+print(fields_dict['ProtocolName'], fields_dict['NumberOfSlices'])
+
+"""
+(0019, 1018) Private tag data                    OB: b'3500'
+ (0008, 2112): <Sequence, length 35, at 284C5DA79A8>,
+ (0008, 2112) Source Image Sequence               SQ: <Sequence, length 35, at 212E2F589A8>
+
+
+
+"""
